@@ -9,61 +9,7 @@ import (
 
 	"github.com/FrameworkOSS/event"
 	"github.com/FrameworkOSS/feature_commands/handler"
-)
-
-var (
-	cmdHelloDolly = handler.NewCommand().
-			SetID("hellodolly").
-			SetName("Hello Dolly").
-			SetAbout("Returns a random lyric from Louis Armstrong's \"Hello, Dolly.\"").
-			SetUsage("Simply call the command without any arguments to receive a random lyric.").
-			SetAliases("hd").
-			SetRequiresPreprocessing(true).
-			SetArgument(handler.NewCommandArg().
-				SetID("lyric").
-				SetName("lyric line").
-				SetAbout("The specific lyric line number to retrieve, or a random line if not specified.").
-				SetUsage(fmt.Sprintf("Provide a lyric line number in the range of 1 to %d.", len(lyrics))).
-				SetAliases("line", "number").
-				SetType(handler.CommandArgTypeNumber).
-				SetRequiresValue(true),
-		).
-		SetSubcommand(cmdTest)
-	cmdTest = handler.NewCommand().
-		SetID("test").
-		SetName("Test Command").
-		SetAbout("A test subcommand for Hello Dolly").
-		SetUsage("This is just a test subcommand.").
-		SetAliases("t")
-
-	lyrics = `Hello, Dolly
-Well, hello, Dolly
-It's so nice to have you back where you belong
-You're lookin' swell, Dolly
-I can tell, Dolly
-You're still glowin', you're still crowin'
-You're still goin' strong
-We feel the room swayin'
-While the band's playin'
-One of your old favourite songs from way back when
-So, take her wrap, fellas
-Find her an empty lap, fellas
-Dolly'll never go away again
-Hello, Dolly
-Well, hello, Dolly
-It's so nice to have you back where you belong
-You're lookin' swell, Dolly
-I can tell, Dolly
-You're still glowin', you're still crowin'
-You're still goin' strong
-We feel the room swayin'
-While the band's playin'
-One of your old favourite songs from way back when
-Golly, gee, fellas
-Find her a vacant knee, fellas
-Dolly'll never go away
-Dolly'll never go away
-Dolly'll never go away again`
+	"github.com/FrameworkOSS/feature_hellodolly/metadata"
 )
 
 type HelloDolly struct {
@@ -82,7 +28,7 @@ func NewHelloDolly() (hd *HelloDolly) {
 	hd.processor = handler.NewEventCommandHandler()
 
 	hd.processor.GetCommandHandler().
-		Handle(hd.cmdHelloDolly, cmdHelloDolly)
+		Handle(hd.cmdHelloDolly, metadata.CmdHelloDolly)
 
 	return
 }
@@ -91,14 +37,14 @@ func (hd *HelloDolly) cmdHelloDolly(cmd *handler.Command, e *event.Event) (err e
 	var r *event.Event
 
 	switch cmd.GetID() {
-	case cmdHelloDolly.GetID():
+	case metadata.CmdHelloDolly.GetID():
 		line := 0
 		if lyric := cmd.GetArgument("lyric"); lyric != nil {
 			line = lyric.GetValueNumber()
 		}
 
 		isRandom := false
-		lines := strings.Split(lyrics, "\n")
+		lines := strings.Split(metadata.Lyrics, "\n")
 		if line < 1 || line >= len(lines) {
 			//Pick a random lyric!
 			line = rand.Intn(len(lines))
@@ -120,7 +66,7 @@ func (hd *HelloDolly) cmdHelloDolly(cmd *handler.Command, e *event.Event) (err e
 		lineFmt := fmt.Sprintf("<code>%s</code>\n\nThis %slyric (line %d) has reached <u>%d</u> view%s!\nThe last response was generated <i>%s</i> ago.", lineS, random, line+1, views, plural, time.Since(hd.lastResp).String())
 
 		r = event.NewEventResponse(hd.ID(), []byte(lineFmt))
-	case cmdHelloDolly.GetID() + " " + cmdTest.GetID():
+	case metadata.CmdHelloDolly.GetID() + " " + metadata.CmdTest.GetID():
 		r = event.NewEventResponse(hd.ID(), []byte(
 			fmt.Sprintf("This is a test response from the <u>Hello Dolly</u> feature's test subcommand!\n\nThe last response was generated <i>%s</i> ago.", time.Since(hd.lastResp).String())),
 		)
@@ -173,31 +119,31 @@ func (hd *HelloDolly) viewCount(line int) int {
 }
 
 func (hd *HelloDolly) API() int {
-	return 0
+	return metadata.API
 }
 
 func (hd *HelloDolly) ID() string {
-	return "hellodolly"
+	return metadata.ID
 }
 
 func (hd *HelloDolly) Name() string {
-	return "Hello Dolly"
+	return metadata.Name
 }
 
 func (hd *HelloDolly) Authors() []string {
-	return []string{"JoshuaDoes"}
+	return strings.Split(metadata.Authors, ",")
 }
 
 func (hd *HelloDolly) Description() string {
-	return "Inspired by the WordPress sample plugin! Responds with a random lyric from Louis Armstrong's \"Hello, Dolly.\""
+	return metadata.Description
 }
 
 func (hd *HelloDolly) Version() string {
-	return "v0.0.1"
+	return metadata.Version
 }
 
 func (hd *HelloDolly) Open() error {
-	hd.storeResp(handler.NewEventCommandAdd(hd.ID(), cmdHelloDolly))
+	hd.storeResp(handler.NewEventCommandAdd(hd.ID(), metadata.CmdHelloDolly))
 	hd.storeResp(event.NewEventReady(hd.ID(), true))
 	return nil
 }
