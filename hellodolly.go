@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/FrameworkOSS/portal/features/commands/handler"
-	"github.com/FrameworkOSS/portal/portal"
+	"github.com/FrameworkOSS/event"
+	"github.com/FrameworkOSS/feature_commands/handler"
 )
 
 var (
@@ -70,7 +70,7 @@ type HelloDolly struct {
 	lockView  sync.Mutex
 	lockResp  sync.Mutex
 	views     map[int]int //line:views
-	resps     []*portal.Event
+	resps     []*event.Event
 	lastResp  time.Time
 	processor *handler.EventCommandHandler
 }
@@ -78,7 +78,7 @@ type HelloDolly struct {
 func NewHelloDolly() (hd *HelloDolly) {
 	hd = new(HelloDolly)
 	hd.views = make(map[int]int)
-	hd.resps = make([]*portal.Event, 0)
+	hd.resps = make([]*event.Event, 0)
 	hd.processor = handler.NewEventCommandHandler()
 
 	hd.processor.GetCommandHandler().
@@ -87,8 +87,8 @@ func NewHelloDolly() (hd *HelloDolly) {
 	return
 }
 
-func (hd *HelloDolly) cmdHelloDolly(cmd *handler.Command, e *portal.Event) (err error) {
-	var r *portal.Event
+func (hd *HelloDolly) cmdHelloDolly(cmd *handler.Command, e *event.Event) (err error) {
+	var r *event.Event
 
 	switch cmd.GetID() {
 	case cmdHelloDolly.GetID():
@@ -119,9 +119,9 @@ func (hd *HelloDolly) cmdHelloDolly(cmd *handler.Command, e *portal.Event) (err 
 		}
 		lineFmt := fmt.Sprintf("<code>%s</code>\n\nThis %slyric (line %d) has reached <u>%d</u> view%s!\nThe last response was generated <i>%s</i> ago.", lineS, random, line+1, views, plural, time.Since(hd.lastResp).String())
 
-		r = portal.NewEventResponse(hd.ID(), []byte(lineFmt))
+		r = event.NewEventResponse(hd.ID(), []byte(lineFmt))
 	case cmdHelloDolly.GetID() + " " + cmdTest.GetID():
-		r = portal.NewEventResponse(hd.ID(), []byte(
+		r = event.NewEventResponse(hd.ID(), []byte(
 			fmt.Sprintf("This is a test response from the <u>Hello Dolly</u> feature's test subcommand!\n\nThe last response was generated <i>%s</i> ago.", time.Since(hd.lastResp).String())),
 		)
 	default:
@@ -143,7 +143,7 @@ func (hd *HelloDolly) cmdHelloDolly(cmd *handler.Command, e *portal.Event) (err 
 	return
 }
 
-func (hd *HelloDolly) storeResp(e *portal.Event) {
+func (hd *HelloDolly) storeResp(e *event.Event) {
 	now := time.Now()
 	hd.lockResp.Lock()
 	hd.lastResp = now
@@ -151,7 +151,7 @@ func (hd *HelloDolly) storeResp(e *portal.Event) {
 	hd.lockResp.Unlock()
 }
 
-func (hd *HelloDolly) readResp() (e *portal.Event) {
+func (hd *HelloDolly) readResp() (e *event.Event) {
 	if len(hd.resps) > 0 {
 		hd.lockResp.Lock()
 		e = hd.resps[0]
@@ -198,7 +198,7 @@ func (hd *HelloDolly) Version() string {
 
 func (hd *HelloDolly) Open() error {
 	hd.storeResp(handler.NewEventCommandAdd(hd.ID(), cmdHelloDolly))
-	hd.storeResp(portal.NewEventReady(hd.ID(), true))
+	hd.storeResp(event.NewEventReady(hd.ID(), true))
 	return nil
 }
 
@@ -206,10 +206,10 @@ func (hd *HelloDolly) Close() (errs []error, retry bool) {
 	return
 }
 
-func (hd *HelloDolly) Input(e *portal.Event) error {
+func (hd *HelloDolly) Input(e *event.Event) error {
 	return hd.processor.Process(e)
 }
 
-func (hd *HelloDolly) Output() (*portal.Event, error) {
+func (hd *HelloDolly) Output() (*event.Event, error) {
 	return hd.readResp(), nil
 }
